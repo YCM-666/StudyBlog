@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -18,11 +18,7 @@ const Home = () => {
     setPage(pageFromUrl);
   }, [pageFromUrl]);
 
-  useEffect(() => {
-    fetchPosts();
-  }, [page]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -47,7 +43,11 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, postsPerPage]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);

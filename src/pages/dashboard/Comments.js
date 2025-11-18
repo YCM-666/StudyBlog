@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,11 +12,7 @@ const Comments = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [editContent, setEditContent] = useState('');
 
-  useEffect(() => {
-    fetchComments();
-  }, []);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -42,7 +38,11 @@ const Comments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id]);
+
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
 
   const handleEditComment = async (comment) => {
     setEditingComment(comment.id);

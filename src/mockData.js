@@ -139,9 +139,9 @@ const strings = createArray(['a', 'b', 'c'])
 ## 实用工具类型
 
 TypeScript 提供了许多实用工具类型：
-- Partial\<T\> - 所有属性变为可选
-- Required\<T\> - 所有属性变为必需
-- Pick\<T, K\> - 选择特定属性`,
+- Partial<T> - 所有属性变为可选
+- Required<T> - 所有属性变为必需
+- Pick<T, K> - 选择特定属性`,
     status: 'published',
     view_count: 234,
     like_count: 18,

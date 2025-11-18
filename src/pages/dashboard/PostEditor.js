@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { supabase } from '../../supabase';
@@ -16,11 +16,6 @@ const PostEditor = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('edit');
-  const [formData, setFormData] = useState({
-    title: '',
-    summary: '',
-    content: '',
-  });
 
   const {
     register,
@@ -28,10 +23,42 @@ const PostEditor = () => {
     formState: { errors },
     setValue,
     watch,
-    reset,
   } = useForm();
 
   const watchedData = watch();
+
+  const fetchPost = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', id)
+        .eq('author_id', user.id)
+        .single();
+
+      if (error) throw error;
+      
+      setValue('title', data.title);
+      setValue('summary', data.summary || '');
+      setValue('content', data.content);
+
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user.id, setValue]);
+
+  useEffect(() => {
+    // 从localStorage加载草稿（仅限新建博客时）
+    const savedData = localStorage.getItem('postDraft');
+    if (savedData && !isEditing) {
+      const draft = JSON.parse(savedData);
+      setValue('title', draft.title);
+      setValue('summary', draft.summary);
+      setValue('content', draft.content);
+    }
+  }, [setValue, isEditing]);
 
   useEffect(() => {
     if (isEditing) {
@@ -39,19 +66,7 @@ const PostEditor = () => {
     } else {
       setLoading(false);
     }
-  }, [id]);
-
-  useEffect(() => {
-    // 从localStorage加载草稿（仅限新建博客时）
-    const savedData = localStorage.getItem('postDraft');
-    if (savedData && !isEditing) {
-      const draft = JSON.parse(savedData);
-      setFormData(draft);
-      setValue('title', draft.title);
-      setValue('summary', draft.summary);
-      setValue('content', draft.content);
-    }
-  }, [setValue, isEditing]);
+  }, [isEditing, fetchPost]);
 
   // 自动保存草稿
   useEffect(() => {
@@ -64,34 +79,6 @@ const PostEditor = () => {
       localStorage.setItem('postDraft', JSON.stringify(draftData));
     }
   }, [watchedData, isEditing]);
-
-  const fetchPost = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('id', id)
-        .eq('author_id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      setFormData({
-        title: data.title,
-        summary: data.summary || '',
-        content: data.content,
-      });
-      
-      setValue('title', data.title);
-      setValue('summary', data.summary || '');
-      setValue('content', data.content);
-
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const onSubmit = async (data, status) => {
     try {

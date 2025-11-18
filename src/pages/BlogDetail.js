@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import ReactMarkdown from 'react-markdown';
@@ -26,12 +26,26 @@ const BlogDetail = () => {
     formState: { errors },
   } = useForm();
 
-  useEffect(() => {
-    fetchPost();
-    fetchComments();
-  }, [id]);
+  const incrementViewCount = useCallback(async (postId) => {
+    try {
+      const viewKey = `viewed_post_${postId}`;
+      const lastViewed = localStorage.getItem(viewKey);
+      const now = Date.now();
+      
+      if (!lastViewed || now - parseInt(lastViewed) > 24 * 60 * 60 * 1000) {
+        await supabase
+          .from('posts')
+          .update({ view_count: (post?.view_count || 0) + 1 })
+          .eq('id', postId);
+        
+        localStorage.setItem(viewKey, now.toString());
+      }
+    } catch (err) {
+      console.error('Error incrementing view count:', err);
+    }
+  }, [post?.view_count]);
 
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('posts')
@@ -50,28 +64,9 @@ const BlogDetail = () => {
       setError('博客不存在或已被删除');
       setLoading(false);
     }
-  };
+  }, [id, incrementViewCount]);
 
-  const incrementViewCount = async (postId) => {
-    try {
-      const viewKey = `viewed_post_${postId}`;
-      const lastViewed = localStorage.getItem(viewKey);
-      const now = Date.now();
-      
-      if (!lastViewed || now - parseInt(lastViewed) > 24 * 60 * 60 * 1000) {
-        await supabase
-          .from('posts')
-          .update({ view_count: (post?.view_count || 0) + 1 })
-          .eq('id', postId);
-        
-        localStorage.setItem(viewKey, now.toString());
-      }
-    } catch (err) {
-      console.error('Error incrementing view count:', err);
-    }
-  };
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       setCommentsLoading(true);
       const { data, error } = await supabase
@@ -88,7 +83,12 @@ const BlogDetail = () => {
       setCommentsLoading(false);
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchPost();
+    fetchComments();
+  }, [fetchPost, fetchComments]);
 
   const onCommentSubmit = async (data) => {
     if (!user) {

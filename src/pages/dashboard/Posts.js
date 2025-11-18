@@ -1,22 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Posts = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [deletingPost, setDeletingPost] = useState(null);
 
-  useEffect(() => {
-    fetchPosts();
-  }, [statusFilter]);
-
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -42,7 +37,11 @@ const Posts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id, statusFilter]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('确定要删除这篇博客吗？此操作无法撤销。')) {

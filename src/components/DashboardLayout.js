@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const DashboardLayout = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
