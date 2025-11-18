@@ -43,16 +43,16 @@ export const AuthProvider = ({ children }) => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        // 所有注册用户都有发布博客权限
-        const mockProfile = { 
-          id: session.user.id, 
-          username: session.user.user_metadata?.username || '用户', 
-          role: 'user'
-        };
+        // 从数据库获取用户资料
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
         dispatch({
           type: 'LOGIN_SUCCESS',
-          payload: { user: session.user, profile: mockProfile }
+          payload: { user: session.user, profile: profile || null }
         });
       } else {
         dispatch({ type: 'SET_LOADING', payload: false });
@@ -64,16 +64,16 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          // 所有注册用户都有发布博客权限
-          const mockProfile = { 
-            id: session.user.id, 
-            username: session.user.user_metadata?.username || '用户', 
-            role: 'user'
-          };
+          // 从数据库获取用户资料
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
           dispatch({
             type: 'LOGIN_SUCCESS',
-            payload: { user: session.user, profile: mockProfile }
+            payload: { user: session.user, profile: profile || null }
           });
         } else {
           dispatch({ type: 'LOGOUT' });
@@ -95,6 +95,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
+      // 从数据库获取用户资料
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -103,7 +104,7 @@ export const AuthProvider = ({ children }) => {
 
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user: data.user, profile }
+        payload: { user: data.user, profile: profile || null }
       });
 
       return { success: true };
@@ -120,6 +121,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'LOGIN_START' });
       
+      // 注册用户
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -127,12 +129,25 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // 注册成功 - 新用户都是注册用户，有发布博客权限
-      const mockProfile = { id: data.user.id, username, role: 'user' };
+      // 创建用户资料
+      await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          username: username,
+          role: 'user'
+        });
+
+      // 获取创建的用户资料
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
       
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user: data.user, profile: mockProfile }
+        payload: { user: data.user, profile: profile || null }
       });
 
       return { success: true, message: '注册成功！' };
